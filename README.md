@@ -36,7 +36,11 @@ No Accessibility or Input Monitoring permission is needed.
   is treated as stale.
 - Content priority: **files** (copied in Finder, attached; body lists the
   filenames) → **image** (screenshot etc., attached as PNG) → **text**.
-- Image-only captures get a `Quick Capture yyyy-MM-dd HH:mm` title line.
+- Image-only and stale captures create a native untitled note (no fabricated
+  title line).
+- Notes duplicates AppleScript-created attachments (macOS 26 bug: one
+  `make new attachment` renders the image twice). The generated script
+  detects this per attachment and deletes the surplus object.
 - Notes are created in the default account's default folder.
 - Menu bar menu: capture manually, toggle **Start at Login**, quit.
 

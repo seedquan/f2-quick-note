@@ -71,8 +71,7 @@ enum NoteCapture {
     /// Creates the note (empty when the clipboard is stale) and shows it.
     static func capture(fresh: Bool) throws {
         let payload = fresh ? readPasteboard() : Payload()
-        let body = NoteBuilder.bodyHTML(text: payload.text,
-                                        fallbackTitle: NoteBuilder.fallbackTitle())
+        let body = NoteBuilder.bodyHTML(text: payload.text)
         let source = NoteBuilder.script(bodyHTML: body,
                                         attachmentPaths: payload.attachmentPaths)
         try runAppleScript(source)

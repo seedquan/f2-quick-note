@@ -12,12 +12,12 @@ public enum NoteBuilder {
     }
 
     /// Notes renders each `<div>` as a line and uses the first line as the
-    /// note title. Empty lines need `<br>` to survive.
-    public static func bodyHTML(text: String?, fallbackTitle: String) -> String {
+    /// note title. Empty lines need `<br>` to survive. No text → empty body,
+    /// so image-only and stale captures get a native untitled note instead
+    /// of a fabricated title.
+    public static func bodyHTML(text: String?) -> String {
         let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !trimmed.isEmpty else {
-            return "<div>\(escapeHTML(fallbackTitle))</div>"
-        }
+        guard !trimmed.isEmpty else { return "" }
         return trimmed
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
@@ -28,14 +28,6 @@ public enum NoteBuilder {
             .joined()
     }
 
-    public static func fallbackTitle(date: Date = Date(), timeZone: TimeZone = .current) -> String {
-        let fmt = DateFormatter()
-        fmt.locale = Locale(identifier: "en_US_POSIX")
-        fmt.timeZone = timeZone
-        fmt.dateFormat = "yyyy-MM-dd HH:mm"
-        return "Quick Capture \(fmt.string(from: date))"
-    }
-
     public static func appleScriptStringLiteral(_ s: String) -> String {
         let escaped = s.replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
@@ -44,12 +36,22 @@ public enum NoteBuilder {
 
     /// AppleScript that creates a note in the default folder, attaches the
     /// given files, then shows it and brings Notes to the front.
+    ///
+    /// Notes (observed on macOS 26) duplicates every attachment created via
+    /// `make new attachment`: one call yields two attachment objects and the
+    /// image renders twice in the note. Each attach is therefore guarded by
+    /// a count check that deletes the surplus object — conditionally, so a
+    /// fixed Notes version won't lose the real attachment.
     public static func script(bodyHTML: String, attachmentPaths: [String]) -> String {
         var lines: [String] = []
         lines.append("tell application \"Notes\"")
         lines.append("set theNote to make new note with properties {body:\(appleScriptStringLiteral(bodyHTML))}")
         for path in attachmentPaths {
+            lines.append("set beforeCount to count of attachments of theNote")
             lines.append("make new attachment at end of attachments of theNote with data (POSIX file \(appleScriptStringLiteral(path)))")
+            lines.append("if (count of attachments of theNote) - beforeCount is greater than or equal to 2 then")
+            lines.append("delete last attachment of theNote")
+            lines.append("end if")
         }
         lines.append("show theNote")
         lines.append("activate")

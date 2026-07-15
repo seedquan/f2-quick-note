@@ -17,41 +17,33 @@ final class NoteBuilderTests: XCTestCase {
     // MARK: - Body HTML
 
     func testBodyHTMLFirstLineBecomesFirstDiv() {
-        let html = NoteBuilder.bodyHTML(text: "Title line\nsecond line", fallbackTitle: "FB")
+        let html = NoteBuilder.bodyHTML(text: "Title line\nsecond line")
         XCTAssertEqual(html, "<div>Title line</div><div>second line</div>")
     }
 
     func testBodyHTMLEmptyLinesBecomeBreaks() {
-        let html = NoteBuilder.bodyHTML(text: "a\n\nb", fallbackTitle: "FB")
+        let html = NoteBuilder.bodyHTML(text: "a\n\nb")
         XCTAssertEqual(html, "<div>a</div><div><br></div><div>b</div>")
     }
 
     func testBodyHTMLEscapesContent() {
-        let html = NoteBuilder.bodyHTML(text: "<script>", fallbackTitle: "FB")
+        let html = NoteBuilder.bodyHTML(text: "<script>")
         XCTAssertEqual(html, "<div>&lt;script&gt;</div>")
     }
 
-    func testBodyHTMLNilTextUsesFallbackTitle() {
-        let html = NoteBuilder.bodyHTML(text: nil, fallbackTitle: "Quick Capture 2026-07-15 14:30")
-        XCTAssertEqual(html, "<div>Quick Capture 2026-07-15 14:30</div>")
+    func testBodyHTMLNilTextIsEmpty() {
+        // No fabricated title: image-only and stale captures get a native
+        // untitled note.
+        XCTAssertEqual(NoteBuilder.bodyHTML(text: nil), "")
     }
 
-    func testBodyHTMLWhitespaceOnlyTextUsesFallbackTitle() {
-        let html = NoteBuilder.bodyHTML(text: "  \n ", fallbackTitle: "FB")
-        XCTAssertEqual(html, "<div>FB</div>")
+    func testBodyHTMLWhitespaceOnlyTextIsEmpty() {
+        XCTAssertEqual(NoteBuilder.bodyHTML(text: "  \n "), "")
     }
 
     func testBodyHTMLHandlesCRLF() {
-        let html = NoteBuilder.bodyHTML(text: "a\r\nb", fallbackTitle: "FB")
+        let html = NoteBuilder.bodyHTML(text: "a\r\nb")
         XCTAssertEqual(html, "<div>a</div><div>b</div>")
-    }
-
-    // MARK: - Fallback title
-
-    func testFallbackTitleFormat() {
-        let date = Date(timeIntervalSince1970: 0)
-        let title = NoteBuilder.fallbackTitle(date: date, timeZone: TimeZone(identifier: "UTC")!)
-        XCTAssertEqual(title, "Quick Capture 1970-01-01 00:00")
     }
 
     // MARK: - AppleScript string escaping
@@ -83,6 +75,20 @@ final class NoteBuilderTests: XCTestCase {
         // attachments must be added before the note is shown
         XCTAssertLessThan(script.range(of: expectedA)!.lowerBound,
                           script.range(of: "show theNote")!.lowerBound)
+    }
+
+    func testScriptDeletesDuplicateAttachmentObjects() {
+        // Notes (macOS 26) visibly duplicates attachments created via
+        // AppleScript: one `make new attachment` yields two attachment
+        // objects and two rendered images. The script must guard each
+        // attach with a count check and delete the surplus object.
+        let script = NoteBuilder.script(bodyHTML: "", attachmentPaths: ["/tmp/a.png"])
+        XCTAssertTrue(script.contains("set beforeCount to count of attachments of theNote"))
+        XCTAssertTrue(script.contains("if (count of attachments of theNote) - beforeCount is greater than or equal to 2 then"))
+        XCTAssertTrue(script.contains("delete last attachment of theNote"))
+        // guard must appear once per attachment
+        let script2 = NoteBuilder.script(bodyHTML: "", attachmentPaths: ["/a.png", "/b.png"])
+        XCTAssertEqual(script2.components(separatedBy: "delete last attachment of theNote").count - 1, 2)
     }
 
     func testScriptEscapesQuotesInBodyAndPaths() {
