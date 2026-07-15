@@ -16,19 +16,20 @@ final class NoteBuilderTests: XCTestCase {
 
     // MARK: - Body HTML
 
-    func testBodyHTMLFirstLineBecomesFirstDiv() {
-        let html = NoteBuilder.bodyHTML(text: "Title line\nsecond line")
-        XCTAssertEqual(html, "<div>Title line</div><div>second line</div>")
+    func testBodyHTMLLeavesBlankTitleLineBeforeText() {
+        // The title spot stays empty; copied text starts on the second line.
+        let html = NoteBuilder.bodyHTML(text: "first line\nsecond line")
+        XCTAssertEqual(html, "<div><br></div><div>first line</div><div>second line</div>")
     }
 
     func testBodyHTMLEmptyLinesBecomeBreaks() {
         let html = NoteBuilder.bodyHTML(text: "a\n\nb")
-        XCTAssertEqual(html, "<div>a</div><div><br></div><div>b</div>")
+        XCTAssertEqual(html, "<div><br></div><div>a</div><div><br></div><div>b</div>")
     }
 
     func testBodyHTMLEscapesContent() {
         let html = NoteBuilder.bodyHTML(text: "<script>")
-        XCTAssertEqual(html, "<div>&lt;script&gt;</div>")
+        XCTAssertEqual(html, "<div><br></div><div>&lt;script&gt;</div>")
     }
 
     func testBodyHTMLNilTextLeavesBlankTitleLine() {
@@ -44,7 +45,7 @@ final class NoteBuilderTests: XCTestCase {
 
     func testBodyHTMLHandlesCRLF() {
         let html = NoteBuilder.bodyHTML(text: "a\r\nb")
-        XCTAssertEqual(html, "<div>a</div><div>b</div>")
+        XCTAssertEqual(html, "<div><br></div><div>a</div><div>b</div>")
     }
 
     // MARK: - AppleScript string escaping
