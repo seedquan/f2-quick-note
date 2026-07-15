@@ -12,12 +12,12 @@ public enum NoteBuilder {
     }
 
     /// Notes renders each `<div>` as a line and uses the first line as the
-    /// note title. Empty lines need `<br>` to survive. No text → empty body,
-    /// so image-only and stale captures get a native untitled note instead
-    /// of a fabricated title.
+    /// note title. Empty lines need `<br>` to survive. No text → one blank
+    /// line: the title spot stays empty. (A fully empty body makes Notes
+    /// write the literal default name "New Note" into the note.)
     public static func bodyHTML(text: String?) -> String {
         let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !trimmed.isEmpty else { return "" }
+        guard !trimmed.isEmpty else { return "<div><br></div>" }
         return trimmed
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")

@@ -31,14 +31,15 @@ final class NoteBuilderTests: XCTestCase {
         XCTAssertEqual(html, "<div>&lt;script&gt;</div>")
     }
 
-    func testBodyHTMLNilTextIsEmpty() {
-        // No fabricated title: image-only and stale captures get a native
-        // untitled note.
-        XCTAssertEqual(NoteBuilder.bodyHTML(text: nil), "")
+    func testBodyHTMLNilTextLeavesBlankTitleLine() {
+        // No text → one empty line, keeping the title spot blank. A fully
+        // empty body would make Notes materialize "New Note" as literal
+        // first-line text.
+        XCTAssertEqual(NoteBuilder.bodyHTML(text: nil), "<div><br></div>")
     }
 
-    func testBodyHTMLWhitespaceOnlyTextIsEmpty() {
-        XCTAssertEqual(NoteBuilder.bodyHTML(text: "  \n "), "")
+    func testBodyHTMLWhitespaceOnlyTextLeavesBlankTitleLine() {
+        XCTAssertEqual(NoteBuilder.bodyHTML(text: "  \n "), "<div><br></div>")
     }
 
     func testBodyHTMLHandlesCRLF() {
