@@ -15,7 +15,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.captureNote()
         }
         hotKeyManager = manager
-        if !manager.registerF2() {
+        let registered = manager.registerF2()
+        NSLog("F2QuickNote: hotkey registered = %@", registered ? "true" : "false")
+        if !registered {
             showError(title: "Could not register F2",
                       message: "Another app may already own the F2 hotkey. Quit it or change its binding, then relaunch F2 Quick Note.")
         }
