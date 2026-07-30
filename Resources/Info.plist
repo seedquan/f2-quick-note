@@ -21,7 +21,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>F2 Quick Note creates new notes in Apple Notes when you press F2.</string>
+	<string>F2 Quick Note creates a new note only after you explicitly press F2 or choose the capture menu item.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 </dict>

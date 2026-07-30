@@ -3,6 +3,14 @@ import XCTest
 
 final class NoteBuilderTests: XCTestCase {
 
+    private func withTemporaryDirectory(_ body: (URL) throws -> Void) throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("F2QuickNoteTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try body(root)
+    }
+
     // MARK: - HTML escaping
 
     func testEscapeHTMLEscapesSpecialCharacters() {
@@ -98,6 +106,64 @@ final class NoteBuilderTests: XCTestCase {
                                         attachmentPaths: [#"/tmp/we"ird.png"#])
         XCTAssertTrue(script.contains(#"{body:"<div>a \"quote\"</div>"}"#))
         XCTAssertTrue(script.contains(#"POSIX file "/tmp/we\"ird.png""#))
+    }
+
+    // MARK: - Clipboard privacy limits
+
+    func testClipboardPolicyAcceptsContentWithinLimits() {
+        XCTAssertTrue(ClipboardPolicy.acceptsText("hello"))
+        XCTAssertTrue(ClipboardPolicy.acceptsAttachments(sizes: [1024, 2048]))
+    }
+
+    func testClipboardPolicyRejectsOversizedText() {
+        let text = String(repeating: "x", count: ClipboardPolicy.maximumTextBytes + 1)
+        XCTAssertFalse(ClipboardPolicy.acceptsText(text))
+    }
+
+    func testClipboardPolicyRejectsTooManyOrOversizedAttachments() {
+        XCTAssertFalse(ClipboardPolicy.acceptsAttachments(
+            sizes: Array(repeating: 1, count: ClipboardPolicy.maximumAttachmentCount + 1)
+        ))
+        XCTAssertFalse(ClipboardPolicy.acceptsAttachments(
+            sizes: [ClipboardPolicy.maximumAttachmentBytes + 1]
+        ))
+        XCTAssertFalse(ClipboardPolicy.acceptsAttachments(
+            sizes: [ClipboardPolicy.maximumAttachmentBytes, ClipboardPolicy.maximumAttachmentBytes, 1]
+        ))
+    }
+
+    func testPrivateTemporaryStorageUsesPrivatePermissions() throws {
+        try withTemporaryDirectory { root in
+            let base = root.appendingPathComponent("private", isDirectory: true)
+            let capture = try PrivateTemporaryStorage.makeCaptureDirectory(in: base)
+            let baseMode = try FileManager.default.attributesOfItem(atPath: base.path)[.posixPermissions] as? NSNumber
+            let captureMode = try FileManager.default.attributesOfItem(atPath: capture.path)[.posixPermissions] as? NSNumber
+            XCTAssertEqual((baseMode?.intValue ?? -1) & 0o777, 0o700)
+            XCTAssertEqual((captureMode?.intValue ?? -1) & 0o777, 0o700)
+        }
+    }
+
+    func testPrivateTemporaryStorageRefusesSymbolicLinkBase() throws {
+        try withTemporaryDirectory { root in
+            let destination = root.appendingPathComponent("destination", isDirectory: true)
+            let link = root.appendingPathComponent("private", isDirectory: true)
+            try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
+            try FileManager.default.createSymbolicLink(at: link, withDestinationURL: destination)
+            XCTAssertThrowsError(try PrivateTemporaryStorage.makeCaptureDirectory(in: link))
+            XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: destination.path), [])
+        }
+    }
+
+    func testPrivateTemporaryStorageCleansOnlyOwnedUUIDDirectories() throws {
+        try withTemporaryDirectory { root in
+            let base = root.appendingPathComponent("private", isDirectory: true)
+            let owned = try PrivateTemporaryStorage.makeCaptureDirectory(in: base)
+            let custom = base.appendingPathComponent("keep-me", isDirectory: true)
+            try FileManager.default.createDirectory(at: custom, withIntermediateDirectories: false)
+            PrivateTemporaryStorage.cleanOwnedDirectories(in: base)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: owned.path))
+            XCTAssertTrue(FileManager.default.fileExists(atPath: custom.path))
+        }
     }
 
     // MARK: - Clipboard freshness
