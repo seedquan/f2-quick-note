@@ -62,6 +62,32 @@ public enum NoteBuilder {
     }
 }
 
+/// Fail-closed limits for content that can leave the pasteboard and enter
+/// Apple Notes. These protect against accidental multi-gigabyte captures and
+/// clipboard poisoning without inspecting or logging the content itself.
+public enum ClipboardPolicy {
+    public static let maximumTextBytes = 1 * 1024 * 1024
+    public static let maximumImageBytes = 25 * 1024 * 1024
+    public static let maximumAttachmentBytes = 50 * 1024 * 1024
+    public static let maximumTotalAttachmentBytes = 100 * 1024 * 1024
+    public static let maximumAttachmentCount = 20
+
+    public static func acceptsText(_ text: String?) -> Bool {
+        guard let text else { return true }
+        return text.lengthOfBytes(using: .utf8) <= maximumTextBytes
+    }
+
+    public static func acceptsAttachments(sizes: [Int]) -> Bool {
+        guard sizes.count <= maximumAttachmentCount,
+              sizes.allSatisfy({ $0 >= 0 && $0 <= maximumAttachmentBytes }) else {
+            return false
+        }
+        return sizes.reduce(into: 0) { total, size in
+            total = min(maximumTotalAttachmentBytes + 1, total + size)
+        } <= maximumTotalAttachmentBytes
+    }
+}
+
 /// Answers "was the clipboard copied recently enough to attach?"
 public enum ClipboardFreshness {
     /// `lastChange == nil` means we never saw the pasteboard change (content

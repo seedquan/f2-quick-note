@@ -6,6 +6,9 @@ the note (text becomes the body, first line becomes the title; images and
 files become attachments). If the clipboard is older than 60 seconds, you
 just get a fresh empty note.
 
+Press **Command-F2** → Apple Notes opens and keyboard focus moves directly to
+its search field.
+
 ## Install
 
 ```sh
@@ -26,8 +29,12 @@ A menu bar icon (note with a plus badge) appears. Press F2 to capture.
 - On first capture, macOS asks to allow the app to control **Notes** —
   click Allow. If you accidentally deny it: System Settings → Privacy &
   Security → Automation → F2 Quick Note → enable Notes.
+- On first Command-F2 search, macOS asks for **Accessibility** permission.
+  Enable F2 Quick Note in System Settings → Privacy & Security →
+  Accessibility, then press Command-F2 again. This permission is used only to
+  locate and focus Apple Notes' search field.
 
-No Accessibility or Input Monitoring permission is needed.
+F2 itself needs neither Accessibility nor Input Monitoring permission.
 
 ## Behavior details
 
@@ -42,12 +49,37 @@ No Accessibility or Input Monitoring permission is needed.
   `make new attachment` renders the image twice). The generated script
   detects this per attachment and deletes the surplus object.
 - Notes are created in the default account's default folder.
-- Menu bar menu: capture manually, toggle **Start at Login**, quit.
+- Menu bar menu: capture manually, focus Apple Notes search, toggle
+  **Start at Login**, quit.
+
+## Privacy and security
+
+- Clipboard contents are read only after an explicit F2 press or menu action,
+  and only when the clipboard changed within the last 60 seconds.
+- Apple Notes may sync captured content through the account configured in
+  Notes. File and image attachments therefore require a confirmation before
+  the note is created.
+- Symbolic links, directories, excessive attachment counts, and oversized
+  text/images/files are rejected before Apple Notes receives anything.
+- Clipboard images use a random private temporary directory (`0700`) and file
+  (`0600`), then are deleted after success, failure, or cancellation.
+- Clipboard text, file names, full paths, generated AppleScript, and raw
+  AppleScript errors are never logged. The app contains no network client;
+  the only external side effect is the explicitly requested Apple Notes event.
+- The app bundle is signed with Hardened Runtime and has no network
+  client/server entitlement. App Sandbox is intentionally disabled because
+  macOS blocks the Accessibility API in sandboxed apps; Command-F2 uses that
+  API only after explicit permission and only to focus Notes' search field.
+- The implementation sends Apple Events only to Notes and reads selected
+  attachment files without modifying them.
+- The scripting entry point `--capture` creates an empty note by default.
+  Clipboard text requires `--allow-content`; attachments additionally require
+  `--allow-attachments`, preventing launchers from silently widening access.
 
 ## Development
 
 - `Sources/F2QuickNoteCore` — pure, unit-tested logic (body HTML, AppleScript
   generation, freshness rule).
-- `Sources/F2QuickNote` — AppKit menu bar app: Carbon F2 hotkey (no
-  Accessibility permission needed), clipboard tracker, capture flow.
+- `Sources/F2QuickNote` — AppKit menu bar app: Carbon F2/Command-F2 hotkeys,
+  Apple Notes search focusing, clipboard tracker, capture flow.
 - Design doc: `docs/superpowers/specs/2026-07-15-f2-quick-note-design.md`.
