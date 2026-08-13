@@ -115,10 +115,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             payload = try NoteCapture.prepare(fresh: fresh)
             guard var prepared = payload else { return }
             defer { prepared.cleanUpTemporaryFiles() }
-            if !prepared.attachmentURLs.isEmpty,
-               !confirmAttachmentCapture(count: prepared.attachmentURLs.count) {
-                return
-            }
             try NoteCapture.capture(prepared)
         } catch NoteCapture.CaptureError.appleScript(let code) {
             // -1743: user denied Apple Events permission
@@ -142,17 +138,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             showError(title: "Could not create note",
                       message: "The request failed without exposing clipboard content or local file paths.")
         }
-    }
-
-    private func confirmAttachmentCapture(count: Int) -> Bool {
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = "Attach clipboard content to Apple Notes?"
-        alert.informativeText = "This capture contains \(count) attachment(s). Apple Notes may sync them through your configured account. No file names or paths are shown or logged."
-        alert.addButton(withTitle: "Create Note")
-        alert.addButton(withTitle: "Cancel")
-        NSApp.activate(ignoringOtherApps: true)
-        return alert.runModal() == .alertFirstButtonReturn
     }
 
     @objc private func toggleLoginItem() {
