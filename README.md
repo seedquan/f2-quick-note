@@ -57,8 +57,7 @@ F2 itself needs neither Accessibility nor Input Monitoring permission.
 - Clipboard contents are read only after an explicit F2 press or menu action,
   and only when the clipboard changed within the last 60 seconds.
 - Apple Notes may sync captured content through the account configured in
-  Notes. File and image attachments therefore require a confirmation before
-  the note is created.
+  Notes. File and image attachments are created directly when you press F2.
 - Symbolic links, directories, excessive attachment counts, and oversized
   text/images/files are rejected before Apple Notes receives anything.
 - Clipboard images use a random private temporary directory (`0700`) and file

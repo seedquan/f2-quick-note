@@ -162,7 +162,7 @@ for (const invariant of ["0o600", "cleanUpTemporaryFiles", "isSymbolicLinkKey", 
   if (!noteCapture.includes(invariant)) report("Sources/F2QuickNote/NoteCapture.swift", `missing privacy invariant: ${invariant}`);
 }
 if (!allSource.includes("0o700")) report("Sources/F2QuickNoteCore/PrivateTemporaryStorage.swift", "missing private directory permissions");
-if (!appDelegate.includes("confirmAttachmentCapture")) report("Sources/F2QuickNote/AppDelegate.swift", "attachment cloud-sync confirmation missing");
+if (appDelegate.includes("confirmAttachmentCapture")) report("Sources/F2QuickNote/AppDelegate.swift", "attachment capture must not require confirmation");
 if (!main.includes("--allow-content") || !main.includes("--allow-attachments")) report("Sources/F2QuickNote/main.swift", "CLI content consent flags missing");
 const makefile = readFileSync(resolve(ROOT, "Makefile"), "utf8");
 if (!makefile.includes("override INSTALLED_APP := /Applications/F2QuickNote.app") || !makefile.includes("guard-paths")) {
