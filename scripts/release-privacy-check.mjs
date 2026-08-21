@@ -20,6 +20,7 @@ if (!existsSync(candidate) || lstatSync(candidate).isSymbolicLink()) {
 const allowedBundleFiles = new Set([
   "Contents/Info.plist",
   "Contents/MacOS/F2QuickNote",
+  "Contents/Resources/F2QuickNote.icns",
   "Contents/_CodeSignature/CodeResources",
 ]);
 const binaries = [];
@@ -43,6 +44,18 @@ try {
   if (lstatSync(candidate).isDirectory()) visit(candidate, candidate);
   else binaries.push(candidate);
   if (binaries.length !== 1) throw new Error("release must contain exactly one executable");
+
+  if (lstatSync(candidate).isDirectory()) {
+    const signature = spawnSync("codesign", ["--display", "--requirements", "-", candidate], {
+      encoding: "utf8",
+      env: Object.fromEntries(["LANG", "LC_ALL", "PATH"].filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]])),
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    if (signature.status !== 0) throw new Error("app bundle has no valid code signature");
+    if (/designated\s*=>\s*cdhash\b/.test(`${signature.stdout}\n${signature.stderr}`)) {
+      throw new Error("ad-hoc signature cannot preserve macOS privacy permissions across builds");
+    }
+  }
 
   const plist = lstatSync(candidate).isDirectory() ? resolve(candidate, "Contents", "Info.plist") : null;
   const outputs = [];

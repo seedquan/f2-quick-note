@@ -10,6 +10,8 @@
 	<string>com.seedquan.f2quicknote</string>
 	<key>CFBundleExecutable</key>
 	<string>F2QuickNote</string>
+	<key>CFBundleIconFile</key>
+	<string>F2QuickNote.icns</string>
 	<key>CFBundleVersion</key>
 	<string>1.0.0</string>
 	<key>CFBundleShortVersionString</key>

@@ -13,6 +13,7 @@ function git(args, encoding = "utf8") {
   return execFileSync("git", ["-C", ROOT, ...args], {
     encoding,
     stdio: ["ignore", "pipe", "pipe"],
+    maxBuffer: MAX_TEXT_BYTES + 64 * 1024,
   });
 }
 
@@ -165,12 +166,22 @@ if (!allSource.includes("0o700")) report("Sources/F2QuickNoteCore/PrivateTempora
 if (appDelegate.includes("confirmAttachmentCapture")) report("Sources/F2QuickNote/AppDelegate.swift", "attachment capture must not require confirmation");
 if (!main.includes("--allow-content") || !main.includes("--allow-attachments")) report("Sources/F2QuickNote/main.swift", "CLI content consent flags missing");
 const makefile = readFileSync(resolve(ROOT, "Makefile"), "utf8");
+const infoPlist = readFileSync(resolve(ROOT, "Resources/Info.plist"), "utf8");
 if (!makefile.includes("override INSTALLED_APP := /Applications/F2QuickNote.app") || !makefile.includes("guard-paths")) {
   report("Makefile", "build/install deletion scope is not fixed and guarded");
 }
 if (!makefile.includes("release-privacy-check.mjs")) report("Makefile", "release privacy gate missing");
 if (!makefile.includes("--options runtime") || !makefile.includes("--entitlements Resources/F2QuickNote.entitlements")) {
   report("Makefile", "Hardened Runtime or entitlement signing missing");
+}
+if (!makefile.includes("CODE_SIGN_CERTIFICATE ?= Apple Development: Xiaolin Quan (548KLZK9CA)")) {
+  report("Makefile", "code-signing certificate family is not pinned; privacy permissions may break when keychain order changes");
+}
+if (!makefile.includes("Resources/F2QuickNote.icns")) {
+  report("Makefile", "application icon is not copied into the app bundle");
+}
+if (!infoPlist.includes("<key>CFBundleIconFile</key>") || !infoPlist.includes("<string>F2QuickNote.icns</string>")) {
+  report("Resources/Info.plist", "application icon is not declared");
 }
 const entitlements = readFileSync(resolve(ROOT, "Resources/F2QuickNote.entitlements"), "utf8");
 for (const required of [
